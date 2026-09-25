@@ -18,6 +18,9 @@ the user's device.
   client-side (CORS blocks reading cross-origin response status; bulk profile requests
   from a phone would likely get rate-limited/blocked by Instagram anyway). Deferred; see
   §7.
+- No "potential stalkers" / story-viewer analysis — verified 2026-09-25 that the official
+  export does not include story viewer lists; only ToS-violating scrapers provide it.
+  Dropped rather than faked.
 - No native app build — no Mac / Apple Developer account available. PWA only.
 - No backend, database, or server-side storage of any kind.
 
@@ -48,7 +51,10 @@ the user's device.
 
 User exports their Instagram data (Settings → Accounts Center → Your information and
 permissions → Download your information → **JSON** format), gets a `.zip`, and picks it
-via a file input in the app. Parsing happens entirely client-side.
+via a file input in the app. Parsing happens entirely client-side. The input also accepts
+multiple loose `.json` files (iOS Files can unzip), as a fallback for very large ZIPs —
+JSZip holds the whole archive in memory, so the in-app instructions tell the user to
+export only "Followers and following", "Likes", "Comments" and "Messages", JSON, no media.
 
 **Files read** (matched by filename pattern inside the ZIP, not a hardcoded path, since
 Instagram's folder structure shifts slightly between export versions):
@@ -56,9 +62,13 @@ Instagram's folder structure shifts slightly between export versions):
 - `close_friends.json`, `restricted_profiles.json`, `blocked_profiles.json`
 - `pending_follow_requests.json`, `recent_follow_requests.json`
 - `recently_unfollowed_profiles.json`
-- `liked_posts.json`, `post_comments.json` — engagement scoring input
-- `story_activities.json` (or export's equivalent story-interaction file) — stalker-signal
-  input
+- `follow_requests_you've_received.json` — received requests
+- `liked_posts.json`, `post_comments_*.json`, `messages/inbox/*/message_1.json` —
+  engagement scoring input
+
+Entry formats drift between export versions (`string_list_data[0].value` vs `title` for
+the username), so each entry's username is resolved as: `string_list_data[0].value` →
+`title` → last path segment of `href`.
 
 If an expected file isn't found, the app shows an in-UI notice naming which category is
 running on partial data — never silently produces a number from missing input.
@@ -79,10 +89,11 @@ Tabs/categories, all computed from the current snapshot unless noted as history-
 7. **Unfollowed You** *(history-based, §6)* — was in your followers on the previous
    snapshot, isn't now
 8. **New Followers** *(history-based, §6)*
-9. **Engagement score / "silent follows"** — accounts you follow with zero recorded
-   interaction (likes/comments/story activity) in either direction
-10. **Potential stalkers** — accounts that view most/all of your stories but don't follow
-    you back (explicitly the honest, data-backed version — not a "profile viewer" claim)
+9. **Engagement / "silent follows"** — accounts you follow with zero recorded interaction.
+   The export only records *your* outbound likes/comments, plus DM threads (two-way), so
+   the score = your likes on their posts + your comments on their posts + DM thread
+   presence/message count. DM usernames are derived from the thread folder name
+   (`inbox/<username>_<digits>`) — best-effort, labelled as such in the UI.
 
 Every list gets a **copy usernames** / **export as CSV** action.
 
