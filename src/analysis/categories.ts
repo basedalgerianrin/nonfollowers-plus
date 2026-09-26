@@ -38,22 +38,28 @@ export function intersection(a: Account[], b: Account[]): Account[] {
 }
 
 const NO_HISTORY = 'Import a newer export later to see changes since this one.';
+const INCOMPLETE_GRAPH = 'Followers or following is missing or incomplete in this export, so this list would be wrong.';
+const INCOMPLETE_HISTORY = 'Followers is missing or incomplete in this or the previous import, so this list would be wrong.';
+
+const complete = (s: Snapshot, key: ListKey) => !s.missing.includes(LIST_LABELS[key]);
 
 function direct(current: Snapshot, key: ListKey & CategoryKey, label: string, description: string): Category {
-  const available = !current.missing.includes(LIST_LABELS[key]);
+  const available = complete(current, key);
   return {
     key,
     label,
     description,
     accounts: current.lists[key],
     available,
-    unavailableReason: `${LIST_LABELS[key]} was not in this export.`,
+    unavailableReason: `${LIST_LABELS[key]} is missing or incomplete in this export.`,
   };
 }
 
 export function computeCategories(current: Snapshot, previous: Snapshot | null): Category[] {
   const { followers, following } = current.lists;
-  const hasHistory = previous !== null;
+  const graphComplete = complete(current, 'followers') && complete(current, 'following');
+  const historyReady = previous !== null && complete(current, 'followers') && complete(previous, 'followers');
+  const historyReason = previous === null ? NO_HISTORY : INCOMPLETE_HISTORY;
   const hasEngagement = Object.keys(current.engagement).length > 0;
 
   return [
@@ -61,41 +67,41 @@ export function computeCategories(current: Snapshot, previous: Snapshot | null):
       key: 'nonFollowers',
       label: "Don't follow back",
       description: "You follow them. They don't follow you.",
-      accounts: difference(following, followers),
-      available: true,
-      unavailableReason: '',
+      accounts: graphComplete ? difference(following, followers) : [],
+      available: graphComplete,
+      unavailableReason: INCOMPLETE_GRAPH,
     },
     {
       key: 'unfollowedYou',
       label: 'Unfollowed you',
       description: 'Followed you in your previous import but not in this one. Can include deactivated or deleted accounts.',
-      accounts: previous ? difference(previous.lists.followers, followers) : [],
-      available: hasHistory,
-      unavailableReason: NO_HISTORY,
+      accounts: historyReady && previous ? difference(previous.lists.followers, followers) : [],
+      available: historyReady,
+      unavailableReason: historyReason,
     },
     {
       key: 'newFollowers',
       label: 'New followers',
       description: 'Follow you now but did not in your previous import.',
-      accounts: previous ? difference(followers, previous.lists.followers) : [],
-      available: hasHistory,
-      unavailableReason: NO_HISTORY,
+      accounts: historyReady && previous ? difference(followers, previous.lists.followers) : [],
+      available: historyReady,
+      unavailableReason: historyReason,
     },
     {
       key: 'fans',
       label: 'Fans',
       description: "They follow you. You don't follow them.",
-      accounts: difference(followers, following),
-      available: true,
-      unavailableReason: '',
+      accounts: graphComplete ? difference(followers, following) : [],
+      available: graphComplete,
+      unavailableReason: INCOMPLETE_GRAPH,
     },
     {
       key: 'mutuals',
       label: 'Mutuals',
       description: 'You follow each other.',
-      accounts: intersection(following, followers),
-      available: true,
-      unavailableReason: '',
+      accounts: graphComplete ? intersection(following, followers) : [],
+      available: graphComplete,
+      unavailableReason: INCOMPLETE_GRAPH,
     },
     {
       key: 'silentFollows',

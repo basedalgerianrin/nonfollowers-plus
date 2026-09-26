@@ -1473,7 +1473,7 @@ function renderDashboard(state: ViewState, h: Handlers): HTMLElement[] {
     nodes.push(
       el('p', {
         className: 'notice',
-        textContent: `Not in this export: ${latest.missing.join(', ')}. Related tabs are limited.`,
+        textContent: `Missing or incomplete in this export: ${latest.missing.join(', ')}. Related tabs are limited.`,
       }),
     );
   }

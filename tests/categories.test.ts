@@ -57,6 +57,22 @@ describe('computeCategories', () => {
     expect(c.restricted.available).toBe(false);
   });
 
+  it('locks relationship categories when followers or following is incomplete', () => {
+    const c = byKey(snap([], ['bob'], { missing: [LIST_LABELS.followers] }), null);
+    for (const key of ['nonFollowers', 'fans', 'mutuals']) {
+      expect(c[key].available).toBe(false);
+      expect(c[key].accounts).toEqual([]);
+    }
+  });
+
+  it('locks history categories when either import has incomplete followers', () => {
+    const complete = snap(['alice'], []);
+    const incomplete = snap([], [], { missing: [LIST_LABELS.followers] });
+    expect(byKey(incomplete, complete).unfollowedYou.available).toBe(false);
+    expect(byKey(complete, incomplete).newFollowers.available).toBe(false);
+    expect(byKey(complete, incomplete).unfollowedYou.accounts).toEqual([]);
+  });
+
   it('silent follows need engagement data', () => {
     expect(byKey(snap([], ['a']), null).silentFollows.available).toBe(false);
     const withData = snap([], ['a', 'b'], { engagement: { b: { likes: 1, comments: 0, dmMessages: 0 } } });
