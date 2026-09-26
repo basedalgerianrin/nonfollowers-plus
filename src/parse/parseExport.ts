@@ -8,7 +8,7 @@ const LIST_PATTERNS: Record<ListKey, RegExp> = {
   restricted: /(^|\/)restricted_profiles\.json$/,
   blocked: /(^|\/)blocked_profiles\.json$/,
   pendingSent: /(^|\/)(pending|recent)_follow_requests\.json$/,
-  pendingReceived: /(^|\/)follow_requests_you['']?ve_received\.json$/,
+  pendingReceived: /(^|\/)follow_requests_you['\u2019]?ve_received\.json$/,
   recentlyUnfollowedByYou: /(^|\/)recently_unfollowed_profiles\.json$/,
 };
 
@@ -79,7 +79,7 @@ function ownerOf(entry: unknown): string {
 export function parseExport(files: Map<string, string>, importedAt: number): Snapshot {
   const lists = {} as Record<ListKey, Account[]>;
   const missing: string[] = [];
-  const results: Record<ListKey, { found: Array<[string, unknown]>; failed: boolean }> = {} as any;
+  const results: Record<ListKey, { found: Array<[string, unknown]>; failed: boolean }> = {} as Record<ListKey, { found: Array<[string, unknown]>; failed: boolean }>;
 
   for (const key of Object.keys(LIST_PATTERNS) as ListKey[]) {
     const result = matching(files, LIST_PATTERNS[key]);

@@ -92,6 +92,6 @@ describe('isRelevantPath', () => {
   });
 
   it("accepts curly apostrophe in follow_requests_you've_received", () => {
-    expect(isRelevantPath("x/follow_requests_you've_received.json")).toBe(true);
+    expect(isRelevantPath('x/follow_requests_you\u2019ve_received.json')).toBe(true);
   });
 });
