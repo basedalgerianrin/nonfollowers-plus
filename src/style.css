@@ -1,0 +1,136 @@
+:root {
+  --bg: #0b0b0f;
+  --surface: #16161d;
+  --border: #26262f;
+  --text: #f4f4f5;
+  --muted: #a1a1aa;
+  --accent: #e1306c;
+  --accent-2: #7c9cff;
+  --danger: #f87171;
+  color-scheme: dark;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-text-size-adjust: 100%;
+}
+
+#app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+h1 { font-size: 22px; margin: 0; }
+h2 { font-size: 17px; margin: 0 0 6px; }
+
+.app-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.muted, .meta, .stat-label { color: var(--muted); font-size: 14px; }
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+.button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.button.subtle { min-height: 36px; font-size: 14px; }
+.button.danger { color: var(--danger); margin-top: 10px; width: 100%; }
+.button:disabled { opacity: 0.4; cursor: default; }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+.status { color: var(--accent-2); margin: 0; }
+.error, .notice { margin: 0; padding: 10px 12px; border-radius: 10px; font-size: 14px; }
+.error { background: rgba(248, 113, 113, 0.12); color: var(--danger); }
+.notice { background: rgba(124, 156, 255, 0.1); color: var(--muted); }
+
+.onboarding ol { padding-left: 20px; line-height: 1.5; }
+
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.stat { display: flex; flex-direction: column; gap: 2px; }
+.stat-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.chart svg { width: 100%; height: auto; display: block; }
+.line-followers { stroke: var(--accent); stroke-width: 2.5; }
+.line-following { stroke: var(--accent-2); stroke-width: 2.5; }
+.axis { fill: var(--muted); font-size: 11px; }
+.legend { display: flex; gap: 16px; font-size: 13px; margin: 8px 0 0; }
+.key::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+.key-followers::before { background: var(--accent); }
+.key-following::before { background: var(--accent-2); }
+
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+.chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+.count { font-variant-numeric: tabular-nums; opacity: 0.7; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.search {
+  flex: 1 1 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+}
+
+.account-list, .history { list-style: none; margin: 0; padding: 0; }
+.account-row, .history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  border-top: 1px solid var(--border);
+}
+.history-row { font-size: 14px; }
+.username { color: var(--text); text-decoration: none; font-weight: 500; overflow-wrap: anywhere; }
+.empty { color: var(--muted); margin: 12px 0 0; }
