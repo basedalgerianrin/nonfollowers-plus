@@ -8,7 +8,7 @@ const LIST_PATTERNS: Record<ListKey, RegExp> = {
   restricted: /(^|\/)restricted_profiles\.json$/,
   blocked: /(^|\/)blocked_profiles\.json$/,
   pendingSent: /(^|\/)(pending|recent)_follow_requests\.json$/,
-  pendingReceived: /(^|\/)follow_requests_you'?ve_received\.json$/,
+  pendingReceived: /(^|\/)follow_requests_you['']?ve_received\.json$/,
   recentlyUnfollowedByYou: /(^|\/)recently_unfollowed_profiles\.json$/,
 };
 
@@ -39,14 +39,19 @@ function parseJson(text: string): unknown {
   }
 }
 
-function matching(files: Map<string, string>, pattern: RegExp): Array<[string, unknown]> {
+function matching(files: Map<string, string>, pattern: RegExp): { found: Array<[string, unknown]>; failed: boolean } {
   const found: Array<[string, unknown]> = [];
+  let failed = false;
   for (const [path, text] of files) {
     if (!pattern.test(path)) continue;
     const data = parseJson(text);
-    if (data !== undefined) found.push([path, data]);
+    if (data !== undefined) {
+      found.push([path, data]);
+    } else {
+      failed = true;
+    }
   }
-  return found.sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+  return { found: found.sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true })), failed };
 }
 
 function dedupe(accounts: Account[]): Account[] {
@@ -74,35 +79,37 @@ function ownerOf(entry: unknown): string {
 export function parseExport(files: Map<string, string>, importedAt: number): Snapshot {
   const lists = {} as Record<ListKey, Account[]>;
   const missing: string[] = [];
+  const results: Record<ListKey, { found: Array<[string, unknown]>; failed: boolean }> = {} as any;
 
   for (const key of Object.keys(LIST_PATTERNS) as ListKey[]) {
-    const found = matching(files, LIST_PATTERNS[key]);
-    if (found.length === 0) missing.push(LIST_LABELS[key]);
+    const result = matching(files, LIST_PATTERNS[key]);
+    results[key] = result;
+    if (result.found.length === 0 || result.failed) missing.push(LIST_LABELS[key]);
     lists[key] = dedupe(
-      found.flatMap(([, data]) => extractEntries(data).map(toAccount).filter((a): a is Account => a !== null)),
+      result.found.flatMap(([, data]) => extractEntries(data).map(toAccount).filter((a): a is Account => a !== null)),
     );
   }
 
-  if (missing.includes(LIST_LABELS.followers) && missing.includes(LIST_LABELS.following)) {
+  if (results.followers.found.length === 0 && results.following.found.length === 0) {
     throw new Error('No followers or following file found. Make sure you picked an Instagram export in JSON format.');
   }
 
   const engagement: Record<string, Engagement> = {};
-  const likes = matching(files, LIKES);
-  const comments = matching(files, COMMENTS);
-  const messages = matching(files, MESSAGES);
+  const likesResult = matching(files, LIKES);
+  const commentsResult = matching(files, COMMENTS);
+  const messagesResult = matching(files, MESSAGES);
 
-  for (const [, data] of likes) for (const e of extractEntries(data)) bump(engagement, ownerOf(e), 'likes');
-  for (const [, data] of comments) for (const e of extractEntries(data)) bump(engagement, ownerOf(e), 'comments');
-  for (const [path, data] of messages) {
+  for (const [, data] of likesResult.found) for (const e of extractEntries(data)) bump(engagement, ownerOf(e), 'likes');
+  for (const [, data] of commentsResult.found) for (const e of extractEntries(data)) bump(engagement, ownerOf(e), 'comments');
+  for (const [path, data] of messagesResult.found) {
     const folder = path.match(MESSAGES)?.[1] ?? '';
     const count = (data as { messages?: unknown[] }).messages?.length ?? 0;
     bump(engagement, folder.replace(/_\d+$/, ''), 'dmMessages', count);
   }
 
-  if (likes.length === 0) missing.push('Likes');
-  if (comments.length === 0) missing.push('Comments');
-  if (messages.length === 0) missing.push('Messages');
+  if (likesResult.found.length === 0 || likesResult.failed) missing.push('Likes');
+  if (commentsResult.found.length === 0 || commentsResult.failed) missing.push('Comments');
+  if (messagesResult.found.length === 0 || messagesResult.failed) missing.push('Messages');
 
   return { importedAt, lists, engagement, missing };
 }

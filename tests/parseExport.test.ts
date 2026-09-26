@@ -69,6 +69,14 @@ describe('parseExport', () => {
     expect(parseExport(files, 0).missing).toContain(LIST_LABELS.blocked);
   });
 
+  it('flags categories with unreadable files as partial', () => {
+    const files = exportFiles();
+    files.set(`${base}followers_2.json`, '{bad');
+    const snap = parseExport(files, 0);
+    expect(snap.lists.followers.map((a) => a.username)).toEqual(['alice', 'bob']);
+    expect(snap.missing).toContain(LIST_LABELS.followers);
+  });
+
   it('throws when neither followers nor following exist', () => {
     expect(() => parseExport(new Map([['random.json', '[]']]), 0)).toThrow(/followers or following/);
   });
@@ -81,5 +89,9 @@ describe('isRelevantPath', () => {
     expect(isRelevantPath('your_instagram_activity/messages/inbox/bob_1/message_1.json')).toBe(true);
     expect(isRelevantPath('connections/followers_and_following/following_hashtags.json')).toBe(false);
     expect(isRelevantPath('media/posts/1.jpg')).toBe(false);
+  });
+
+  it("accepts curly apostrophe in follow_requests_you've_received", () => {
+    expect(isRelevantPath("x/follow_requests_you've_received.json")).toBe(true);
   });
 });
