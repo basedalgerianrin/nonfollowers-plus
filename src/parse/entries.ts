@@ -25,13 +25,14 @@ export function extractEntries(data: unknown): unknown[] {
 export function toAccount(entry: unknown): Account | null {
   if (!entry || typeof entry !== 'object') return null;
   const raw = entry as RawEntry;
-  const first = raw.string_list_data?.[0] ?? {};
-  const href = first.href ?? '';
-  const username = (first.value || raw.title || usernameFromHref(href)).trim();
+  const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+  const first = Array.isArray(raw.string_list_data) && raw.string_list_data[0] && typeof raw.string_list_data[0] === 'object' ? raw.string_list_data[0] : {};
+  const href = str(first.href);
+  const username = (str(first.value) || str(raw.title) || usernameFromHref(href)).trim();
   if (!username) return null;
   return {
     username,
     href: INSTAGRAM_URL.test(href) ? href : `https://www.instagram.com/${encodeURIComponent(username)}`,
-    timestamp: first.timestamp ?? 0,
+    timestamp: typeof first.timestamp === 'number' ? first.timestamp : 0,
   };
 }

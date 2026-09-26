@@ -51,4 +51,14 @@ describe('toAccount', () => {
     expect(toAccount({})).toBeNull();
     expect(toAccount(null)).toBeNull();
   });
+  it('skips malformed entries with non-string values', () => {
+    expect(toAccount({ title: 42, string_list_data: [{ value: 7, href: 99, timestamp: 'x' }] })).toBeNull();
+  });
+  it('handles non-array string_list_data by falling back to title and timestamp 0', () => {
+    expect(toAccount({ string_list_data: 'nope', title: 'alice' })).toEqual({
+      username: 'alice',
+      href: 'https://www.instagram.com/alice',
+      timestamp: 0,
+    });
+  });
 });
