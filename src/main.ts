@@ -22,7 +22,9 @@ function download(filename: string, text: string): void {
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;
+  document.body.appendChild(link);
   link.click();
+  link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
@@ -61,17 +63,38 @@ const handlers: Handlers = {
     render();
   },
   onCsv(category) {
-    download(`${category.key}-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(category.accounts));
+    const filename = `nonfollowers-${category.key}-${new Date().toISOString().slice(0, 10)}.csv`;
+    const csv = toCsv(category.accounts);
+    const file = new File([csv], filename, { type: 'text/csv' });
+    if (navigator.canShare?.({ files: [file] })) {
+      navigator.share({ files: [file] }).catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        state.error = err instanceof Error ? err.message : String(err);
+        render();
+      });
+      return;
+    }
+    download(filename, csv);
   },
   async onDeleteSnapshot(id) {
     if (!confirm('Delete this import?')) return;
-    await deleteSnapshot(id);
-    await reload();
+    try {
+      await deleteSnapshot(id);
+      await reload();
+    } catch (err) {
+      state.error = `Could not delete this import: ${err instanceof Error ? err.message : String(err)}`;
+      render();
+    }
   },
   async onDeleteAll() {
     if (!confirm('Delete all imports stored on this device?')) return;
-    await clearSnapshots();
-    await reload();
+    try {
+      await clearSnapshots();
+      await reload();
+    } catch (err) {
+      state.error = `Could not delete stored imports: ${err instanceof Error ? err.message : String(err)}`;
+      render();
+    }
   },
 };
 

@@ -76,9 +76,9 @@ function renderOnboarding(): HTMLElement {
   ]);
 }
 
-function stat(label: string, value: number): HTMLElement {
+function stat(label: string, value: string): HTMLElement {
   return el('div', { className: 'stat card' }, [
-    el('span', { className: 'stat-value', textContent: value.toLocaleString() }),
+    el('span', { className: 'stat-value', textContent: value }),
     el('span', { className: 'stat-label', textContent: label }),
   ]);
 }
@@ -142,7 +142,13 @@ function renderCategories(categories: Category[], state: ViewState, h: Handlers)
   );
 
   const listHost = el('div', { className: 'list-host' }, [renderList(active, state.query)]);
-  const search = el('input', { type: 'search', placeholder: 'Search usernames', value: state.query, className: 'search' });
+  const search = el('input', {
+    type: 'search',
+    placeholder: 'Search usernames',
+    value: state.query,
+    className: 'search',
+  });
+  search.setAttribute('aria-label', 'Search usernames');
   search.addEventListener('input', () => {
     h.onQuery(search.value);
     listHost.replaceChildren(renderList(active, search.value));
@@ -167,11 +173,13 @@ function renderCategories(categories: Category[], state: ViewState, h: Handlers)
 
 function renderHistory(snapshots: Snapshot[], h: Handlers): HTMLElement {
   const rows = [...snapshots].reverse().map((s) => {
+    const importedOn = new Date(s.importedAt).toLocaleString();
     const remove = el('button', { type: 'button', className: 'button subtle', textContent: 'Delete' });
+    remove.setAttribute('aria-label', `Delete import from ${importedOn}`);
     remove.addEventListener('click', () => h.onDeleteSnapshot(s.id!));
     return el('li', { className: 'history-row' }, [
       el('span', {
-        textContent: `${new Date(s.importedAt).toLocaleString()} · ${s.lists.followers.length} followers · ${s.lists.following.length} following`,
+        textContent: `${importedOn} · ${s.lists.followers.length} followers · ${s.lists.following.length} following`,
       }),
       remove,
     ]);
@@ -189,7 +197,10 @@ function renderDashboard(state: ViewState, h: Handlers): HTMLElement[] {
   const latest = state.snapshots[state.snapshots.length - 1];
   const previous = state.snapshots[state.snapshots.length - 2] ?? null;
   const categories = computeCategories(latest, previous);
-  const count = (key: CategoryKey) => categories.find((c) => c.key === key)!.accounts.length;
+  const count = (key: CategoryKey): string => {
+    const category = categories.find((c) => c.key === key)!;
+    return category.available ? category.accounts.length.toLocaleString() : '–';
+  };
 
   const nodes: HTMLElement[] = [];
   if (latest.missing.length > 0) {
@@ -202,8 +213,8 @@ function renderDashboard(state: ViewState, h: Handlers): HTMLElement[] {
   }
   nodes.push(
     el('section', { className: 'stats' }, [
-      stat('Followers', latest.lists.followers.length),
-      stat('Following', latest.lists.following.length),
+      stat('Followers', latest.lists.followers.length.toLocaleString()),
+      stat('Following', latest.lists.following.length.toLocaleString()),
       stat('Mutuals', count('mutuals')),
       stat("Don't follow back", count('nonFollowers')),
     ]),
@@ -216,8 +227,18 @@ function renderDashboard(state: ViewState, h: Handlers): HTMLElement[] {
 
 export function renderApp(root: HTMLElement, state: ViewState, h: Handlers): void {
   const nodes: HTMLElement[] = [renderHeader(h)];
-  if (state.status) nodes.push(el('p', { className: 'status', textContent: state.status }));
-  if (state.error) nodes.push(el('p', { className: 'error', textContent: state.error }));
+  if (state.status) {
+    const status = el('p', { className: 'status', textContent: state.status });
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+    nodes.push(status);
+  }
+  if (state.error) {
+    const error = el('p', { className: 'error', textContent: state.error });
+    error.setAttribute('role', 'alert');
+    error.setAttribute('aria-live', 'polite');
+    nodes.push(error);
+  }
   nodes.push(...(state.snapshots.length > 0 ? renderDashboard(state, h) : [renderOnboarding()]));
   root.replaceChildren(...nodes);
 }
