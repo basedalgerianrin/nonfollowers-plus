@@ -98,7 +98,9 @@ function renderTrend(snapshots: Snapshot[]): HTMLElement | null {
     ]),
     el('p', {
       className: 'muted',
-      textContent: `Since previous import: +${last.gained} gained, -${last.lost} lost.`,
+      textContent: last.complete
+        ? `Since previous import: +${last.gained} gained, -${last.lost} lost.`
+        : 'Changes since previous import are unavailable: followers data is missing or incomplete.',
     }),
   ]);
 }

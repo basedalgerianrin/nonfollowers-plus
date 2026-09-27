@@ -27,6 +27,10 @@ async function run<T>(mode: IDBTransactionMode, action: (store: IDBObjectStore) 
       db.close();
       reject(tx.error);
     };
+    tx.onabort = () => {
+      db.close();
+      reject(tx.error ?? new Error('Storage transaction was aborted. Your device may be low on space.'));
+    };
   });
 }
 
