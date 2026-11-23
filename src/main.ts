@@ -1,7 +1,7 @@
 import './style.css';
 import { toCsv, toUsernameText } from './export/listExport';
 import { parseExport } from './parse/parseExport';
-import { exportTime } from './parse/exportDate';
+import { exportTime, zipTime } from './parse/exportDate';
 import { readInput } from './parse/readInput';
 import { clearSnapshots, deleteSnapshot, listSnapshots, saveSnapshot } from './storage/snapshotStore';
 import { renderApp, type Handlers, type ViewState } from './ui/render';
@@ -35,7 +35,7 @@ const handlers: Handlers = {
     state.error = '';
     render();
     try {
-      const snapshot = parseExport(await readInput(files), exportTime(files, Date.now()));
+      const snapshot = parseExport(await readInput(files), (await zipTime(files)) ?? exportTime(files, Date.now()));
       await saveSnapshot(snapshot);
       state.status = '';
       await reload();

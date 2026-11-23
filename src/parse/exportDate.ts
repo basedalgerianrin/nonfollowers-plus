@@ -10,3 +10,19 @@ export function exportTime(files: Array<{ name: string }>, fallback: number): nu
   }
   return fallback;
 }
+
+// Newest file timestamp stored inside any zip (every Instagram export entry carries its creation date/time).
+// Returns null for non-zip input or if the archive has no usable dates.
+export async function zipTime(files: File[]): Promise<number | null> {
+  const { default: JSZip } = await import('jszip');
+  let newest: number | null = null;
+  for (const file of files) {
+    if (!file.name.toLowerCase().endsWith('.zip')) continue;
+    const zip = await JSZip.loadAsync(await file.arrayBuffer());
+    for (const entry of Object.values(zip.files)) {
+      const t = entry.date?.getTime();
+      if (t !== undefined && !Number.isNaN(t) && (newest === null || t > newest)) newest = t;
+    }
+  }
+  return newest;
+}
