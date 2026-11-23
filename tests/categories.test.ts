@@ -73,6 +73,24 @@ describe('computeCategories', () => {
     expect(byKey(complete, incomplete).unfollowedYou.accounts).toEqual([]);
   });
 
+  it('flags accounts that vanished from both lists without you unfollowing them', () => {
+    const prev = snap(['gone', 'quit', 'mine', 'stay'], ['gone', 'quit', 'mine', 'stay', 'ghost']);
+    const cur = snap(['quit', 'stay'], ['quit', 'stay'], {});
+    cur.lists.recentlyUnfollowedByYou = [acc('mine')];
+    const c = byKey(cur, prev).possiblyBlocked;
+    expect(c.available).toBe(true);
+    expect(names(c.accounts).sort()).toEqual(['ghost', 'gone']);
+  });
+
+  it('locks possibly-blocked without a previous import or with incomplete lists', () => {
+    expect(byKey(snap(['a'], ['a']), null).possiblyBlocked.available).toBe(false);
+    const prev = snap(['a'], ['a']);
+    const cur = snap(['a'], [], { missing: [LIST_LABELS.following] });
+    expect(byKey(cur, prev).possiblyBlocked.available).toBe(false);
+    const noUnf = snap([], [], { missing: [LIST_LABELS.recentlyUnfollowedByYou] });
+    expect(byKey(noUnf, prev).possiblyBlocked.available).toBe(false);
+  });
+
   it('silent follows need engagement data', () => {
     expect(byKey(snap([], ['a']), null).silentFollows.available).toBe(false);
     const withData = snap([], ['a', 'b'], { engagement: { b: { likes: 1, comments: 0, dmMessages: 0 } } });

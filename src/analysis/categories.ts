@@ -6,6 +6,7 @@ export type CategoryKey =
   | 'nonFollowers'
   | 'unfollowedYou'
   | 'newFollowers'
+  | 'possiblyBlocked'
   | 'fans'
   | 'mutuals'
   | 'silentFollows'
@@ -60,6 +61,10 @@ export function computeCategories(current: Snapshot, previous: Snapshot | null):
   const graphComplete = complete(current, 'followers') && complete(current, 'following');
   const historyReady = previous !== null && complete(current, 'followers') && complete(previous, 'followers');
   const historyReason = previous === null ? NO_HISTORY : INCOMPLETE_HISTORY;
+  const blockedReady =
+    previous !== null &&
+    (['followers', 'following', 'recentlyUnfollowedByYou'] as ListKey[]).every((k) => complete(current, k)) &&
+    complete(previous, 'following');
   const hasEngagement = Object.keys(current.engagement).length > 0;
 
   return [
@@ -86,6 +91,18 @@ export function computeCategories(current: Snapshot, previous: Snapshot | null):
       accounts: historyReady && previous ? difference(followers, previous.lists.followers) : [],
       available: historyReady,
       unavailableReason: historyReason,
+    },
+    {
+      key: 'possiblyBlocked',
+      label: 'Possibly blocked / deactivated',
+      description:
+        'You followed them in your previous import. Now they are in neither your followers nor your following, and you did not unfollow them. Instagram does not say which: they either deactivated, deleted, or blocked you.',
+      accounts:
+        blockedReady && previous
+          ? difference(difference(difference(previous.lists.following, following), followers), current.lists.recentlyUnfollowedByYou)
+          : [],
+      available: blockedReady,
+      unavailableReason: previous === null ? NO_HISTORY : INCOMPLETE_HISTORY,
     },
     {
       key: 'fans',
